@@ -13,10 +13,7 @@ const movieschema = new mongoose.Schema({
         data:Buffer,
         contentType:String,
     },
-    video: {
-        data: Buffer, 
-        contentType: String, 
-      }
+   
 })
 var Moviemodel=mongoose.model('movie',movieschema)
 module.exports=Moviemodel;

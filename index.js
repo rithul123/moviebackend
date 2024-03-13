@@ -22,6 +22,40 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors());
 
+// Connect to MongoDB
+mongoose.connect('mongodb+srv://krishnayadhu361:krish@cluster0.afifdaa.mongodb.net/ott?retryWrites=true&w=majority', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => console.log('MongoDB connected'))
+.catch((err) => console.error(err));
+
+// Multer configuration for video uploads
+const videoStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  },
+});
+
+const videoUpload = multer({ storage: videoStorage });
+
+// Route to handle video uploads
+app.post('/video/upload', videoUpload.single('video'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No file uploaded.');
+  }
+
+  res.send('Video uploaded successfully.');
+});
+
+// Serve uploaded videos statically
+app.use('/videos', express.static(path.join(__dirname, 'uploads')));
+
 // Route to upload a video
 app.post('/upload', upload.single('video'), (req, res) => {
   if (!req.file) {
@@ -127,47 +161,18 @@ app.post('/languages', async (req, res) => {
     res.status(500).json({ error: 'Failed to add language' });
   }
 });
-app.get('/movies/:id',(request,response)=>{
-  const{id}=request.params
-  coursemodel.findById(id).then(data=>{
-      response.send(data)
-  })
-})
 
-// Connect to MongoDB
-mongoose
-  .connect('mongodb+srv://krishnayadhu361:krish@cluster0.afifdaa.mongodb.net/ott?retryWrites=true&w=majority', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error(err));
-
-// Multer configuration for video uploads
-const videoStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, uniqueSuffix + ext);
-  },
-});
-
-const videoUpload = multer({ storage: videoStorage });
-
-// Route to handle video uploads
-app.post('/video/upload', videoUpload.single('video'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded.');
+// Get movie by ID
+app.get('/movies/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const movie = await Moviemodel.findById(id);
+    res.json(movie);
+  } catch (error) {
+    console.error('Error getting movie by ID:', error);
+    res.status(500).json({ error: 'Failed to get movie by ID' });
   }
-
-  res.send('Video uploaded successfully.');
 });
-
-// Serve uploaded videos statically
-app.use('/videos', express.static(path.join(__dirname, 'uploads')));
 
 // Start the server
 app.listen(PORT, () => {
